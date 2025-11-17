@@ -1,0 +1,78 @@
+plugins {
+    id 'eclipse'
+    id 'net.minecraftforge.gradle' version "${forge_gradle_version}"
+    id 'org.spongepowered.mixin' version "${mixin_gradle_version}"
+}
+
+version = "${mc_version}-${mod_version}"
+group = "${mod_group}"
+archivesBaseName = "${mod_name}"
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(8)
+
+minecraft {
+    mappings channel: "${mappings_channel}", version: "${mappings_version}"
+
+    runs {
+        client {
+            taskName "runClient ${mod_name} ${mc_version}"
+            environment 'MC_VERSION', "${mc_version}"
+            property 'fml.coreMods.load', "${mod_plugin_class}"
+        }
+
+        server {
+            taskName "runServer ${mod_name} ${mc_version}"
+            environment 'MC_VERSION', "${mc_version}"
+            property 'fml.coreMods.load', "${mod_plugin_class}"
+        }
+    }
+}
+
+configurations {
+    includedDependencies
+    implementation.extendsFrom(includedDependencies)
+}
+
+repositories {
+    ivy {
+        url 'https://github.com/'
+
+        patternLayout {
+            artifact '[organisation]/[module]/releases/download/v[revision]/[module]-[revision].[ext]'
+        }
+
+        metadataSources { artifact() } 
+    }
+}
+
+dependencies {
+    minecraft "net.minecraftforge:forge:${mc_version}-${forge_version}"
+    implementation "org.spongepowered:mixin:${mixin_version}"
+    annotationProcessor "org.spongepowered:mixin:${mixin_version}:processor"
+
+    includedDependencies 'meldexun:ASMUtil:2.8.0@jar'
+}
+
+mixin {
+    add sourceSets.main, "mixins.${mod_id}.refmap.json"
+    config "mixins.${mod_id}.json"
+}
+
+jar {
+    archiveBaseName = mod_name
+    archiveAppendix = mc_version
+    archiveVersion = mod_version
+
+    from {
+        configurations.includedDependencies.collect { it.isDirectory() ? it : zipTree(it).matching { exclude 'LICENSE' } }
+    }
+
+    manifest {
+        attributes 'FMLCorePlugin': "${mod_plugin_class}"
+        attributes 'TweakClass': 'org.spongepowered.asm.launch.MixinTweaker'
+        attributes 'TweakOrder': '0'
+        attributes 'MixinConfigs': "mixins.${mod_id}.json"
+    }
+}
+
+jar.finalizedBy('reobfJar')

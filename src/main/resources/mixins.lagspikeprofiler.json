@@ -1,0 +1,14 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "meldexun.lagspikeprofiler.mixin",
+  "compatibilityLevel": "JAVA_8",
+  "refmap": "mixins.lagspikeprofiler.refmap.json",
+  "mixins": [
+    "MinecraftMixin",
+    "WorldProfilerAccessor"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
