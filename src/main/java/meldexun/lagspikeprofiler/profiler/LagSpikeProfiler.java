@@ -1,8 +1,13 @@
 package meldexun.lagspikeprofiler.profiler;
 
+import java.io.DataInputStream;
+import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
+
+import javax.annotation.Nullable;
 
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import net.minecraft.profiler.Profiler;
@@ -25,6 +30,17 @@ public class LagSpikeProfiler extends Profiler {
 			this.name = name;
 		}
 
+		public Section(DataInputStream in, String[] names, @Nullable Section parent) throws IOException {
+			this.parent = parent;
+			this.name = names[ProfilerIO.readVarInt(in)];
+			this.time = ProfilerIO.readVarLong(in);
+			int n = ProfilerIO.readVarInt(in);
+			this.subsections = new ObjectArrayList<>(n);
+			for (int i = 0; i < n; i++) {
+				this.subsections.add(new Section(in, names, this));
+			}
+		}
+
 		Section addSubsection(String name) {
 			if (subsections == null)
 				subsections = new ObjectArrayList<>(8);
@@ -43,6 +59,13 @@ public class LagSpikeProfiler extends Profiler {
 
 		public List<Section> subsections() {
 			return subsections != null ? subsections : Collections.emptyList();
+		}
+
+		public Stream<Section> stream() {
+			if (subsections == null) {
+				return Stream.of(this);
+			}
+			return Stream.concat(Stream.of(this), subsections.stream().flatMap(Section::stream));
 		}
 
 	}

@@ -1,7 +1,7 @@
 package meldexun.lagspikeprofiler.mixin;
 
 import java.io.BufferedOutputStream;
-import java.io.DataOutputStream;
+import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -22,14 +22,12 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ListenableFuture;
 
-import it.unimi.dsi.fastutil.Stack;
-import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import meldexun.lagspikeprofiler.command.CommandProfile;
 import meldexun.lagspikeprofiler.profiler.LagSpikeProfiler;
 import meldexun.lagspikeprofiler.profiler.LagSpikeProfiler.Section;
+import meldexun.lagspikeprofiler.profiler.ProfilerIO;
 import meldexun.lagspikeprofiler.profiler.ProfilingManager;
 import meldexun.lagspikeprofiler.profiler.ProfilingState;
 import net.minecraft.client.Minecraft;
@@ -82,16 +80,9 @@ public abstract class MinecraftMixin implements ProfilingManager {
 				List<Section> profilerResult = ((LagSpikeProfiler) profiler).frames();
 				CompletableFuture.runAsync(() -> {
 					Path file = Paths.get("profiler-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss")) + ".lagspikeprofile");
-					try (DataOutputStream out = new DataOutputStream(new BufferedOutputStream(new BZip2CompressorOutputStream(new BufferedOutputStream(Files.newOutputStream(file)))))) {
-						out.writeInt(profilerResult.size());
-						Stack<Section> stack = new ObjectArrayList<>(Lists.reverse(profilerResult));
-						while (!stack.isEmpty()) {
-							Section section = stack.pop();
-							out.writeUTF(section.name());
-							out.writeLong(section.time());
-							out.writeInt(section.subsections().size());
-							Lists.reverse(section.subsections()).forEach(stack::push);
-						}
+					try (OutputStream out = new BufferedOutputStream(new BZip2CompressorOutputStream(new BufferedOutputStream(Files.newOutputStream(file))))) {
+						ProfilerIO.write(out, profilerResult);
+
 						addScheduledTask(() -> {
 							if (player != null) {
 								player.sendMessage(new TextComponentString("Profiler result saved to " + file));
