@@ -62,7 +62,7 @@ public class ProfilerIO {
 				names[i] = in.readUTF();
 			}
 
-			int n = readVarInt(in);
+			int n = in.readInt();
 			List<Section> profilerResult = new ObjectArrayList<>(n);
 			for (int i = 0; i < n; i++) {
 				profilerResult.add(new Section(in, names, null));
