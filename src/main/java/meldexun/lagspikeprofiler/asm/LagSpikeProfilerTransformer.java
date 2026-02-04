@@ -4,6 +4,7 @@ import java.lang.reflect.Field;
 
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.FieldInsnNode;
 import org.objectweb.asm.tree.FieldNode;
 import org.objectweb.asm.tree.InsnNode;
@@ -26,6 +27,7 @@ import meldexun.asmutil2.reader.ClassUtil;
 import meldexun.lagspikeprofiler.asm.util.DeobfuscationUtil;
 import net.minecraft.launchwrapper.IClassTransformer;
 import net.minecraft.launchwrapper.Launch;
+import net.minecraftforge.fml.common.eventhandler.Event;
 
 public class LagSpikeProfilerTransformer extends HashMapClassNodeClassTransformer implements IClassTransformer {
 
@@ -82,6 +84,18 @@ public class LagSpikeProfilerTransformer extends HashMapClassNodeClassTransforme
 			m_profilingName.instructions.add(new FieldInsnNode(Opcodes.GETFIELD, classNode.name, f_profilingName.name, f_profilingName.desc));
 			m_profilingName.instructions.add(new InsnNode(Opcodes.ARETURN));
 			classNode.methods.add(m_profilingName);
+
+			MethodNode clinit = ASMUtil.find(classNode, "<clinit>");
+			ASMUtil.replace(clinit, ASMUtil.first(clinit).methodInsn("getDeclaredMethods").find(), ASMUtil.first(clinit).opcode(Opcodes.AALOAD).find(), ASMUtil.listOf(
+					new LdcInsnNode("invoke"),
+					new InsnNode(Opcodes.ICONST_1),
+					new TypeInsnNode(Opcodes.ANEWARRAY, "java/lang/Class"),
+					new InsnNode(Opcodes.DUP),
+					new InsnNode(Opcodes.ICONST_0),
+					new LdcInsnNode(Type.getType(Event.class)),
+					new InsnNode(Opcodes.AASTORE),
+					new MethodInsnNode(Opcodes.INVOKEVIRTUAL, "java/lang/Class", "getDeclaredMethod", "(Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/reflect/Method;", false)
+			));
 		});
 		registry.add("net.minecraftforge.fml.common.eventhandler.EventBus", "post", ClassWriter.COMPUTE_FRAMES, method -> {
 			ASMUtil.addLocalVariable(method, "profiler", "Lnet/minecraft/profiler/Profiler;", new LabelNode(), ASMUtil.findLocalVariable(method, "listeners").end);
