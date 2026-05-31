@@ -50,6 +50,8 @@ public abstract class MinecraftMixin implements ProfilingManager {
 	public EntityPlayerSP player;
 
 	@Unique
+	private boolean enableProfiling;
+	@Unique
 	private ProfilingState state = ProfilingState.IDLE;
 	@Unique
 	private long start;
@@ -61,15 +63,21 @@ public abstract class MinecraftMixin implements ProfilingManager {
 		ClientCommandHandler.instance.registerCommand(new CommandProfile());
 	}
 
-	@Inject(method = "runGameLoop", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/Minecraft;updateDisplay()V", shift = Shift.BEFORE))
-	public void preUpdateDisplay(CallbackInfo info) {
-		profiler.startSection("updateDisplay");
+	@Inject(method = "runGameLoop", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/shader/Framebuffer;unbindFramebuffer()V", shift = Shift.BEFORE))
+	public void delayToggleProfiling(CallbackInfo info) {
+		if (profiler.profilingEnabled != enableProfiling) {
+			profiler.profilingEnabled = !profiler.profilingEnabled;
+			enableProfiling = !enableProfiling;
+		}
 	}
 
-	@Inject(method = "runGameLoop", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/Minecraft;updateDisplay()V", shift = Shift.AFTER))
-	public void postUpdateDisplay(CallbackInfo info) {
-		profiler.endSection(); // end "updateDisplay"
+	@Inject(method = "updateDisplay", at = @At(value = "INVOKE", target = "Lnet/minecraft/profiler/Profiler;startSection(Ljava/lang/String;)V", shift = Shift.BEFORE))
+	public void preUpdateDisplay(CallbackInfo info) {
 		profiler.endSection(); // end "root"
+
+		if (profiler.profilingEnabled != enableProfiling) {
+			profiler.profilingEnabled = enableProfiling;
+		}
 
 		// end previous frame
 		if (state == ProfilingState.PROFILING || state == ProfilingState.STOPPING) {
