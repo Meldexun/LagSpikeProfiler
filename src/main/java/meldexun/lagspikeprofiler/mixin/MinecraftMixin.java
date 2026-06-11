@@ -71,7 +71,7 @@ public abstract class MinecraftMixin implements ProfilingManager {
 		}
 	}
 
-	@Inject(method = "updateDisplay", at = @At(value = "INVOKE", target = "Lnet/minecraft/profiler/Profiler;startSection(Ljava/lang/String;)V", shift = Shift.BEFORE))
+	@Inject(method = "updateDisplay", at = @At(value = "INVOKE", target = "Lnet/minecraft/profiler/Profiler;startSection(Ljava/lang/String;)V", shift = Shift.BY, by = -3))
 	public void preUpdateDisplay(CallbackInfo info) {
 		profiler.endSection(); // end "root"
 
