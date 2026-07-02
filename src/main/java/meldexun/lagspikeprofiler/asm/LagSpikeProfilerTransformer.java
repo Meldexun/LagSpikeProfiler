@@ -85,17 +85,21 @@ public class LagSpikeProfilerTransformer extends HashMapClassNodeClassTransforme
 			m_profilingName.instructions.add(new InsnNode(Opcodes.ARETURN));
 			classNode.methods.add(m_profilingName);
 
-			MethodNode clinit = ASMUtil.find(classNode, "<clinit>");
-			ASMUtil.replace(clinit, ASMUtil.first(clinit).methodInsn("getDeclaredMethods").find(), ASMUtil.first(clinit).opcode(Opcodes.AALOAD).find(), ASMUtil.listOf(
-					new LdcInsnNode("invoke"),
-					new InsnNode(Opcodes.ICONST_1),
-					new TypeInsnNode(Opcodes.ANEWARRAY, "java/lang/Class"),
-					new InsnNode(Opcodes.DUP),
-					new InsnNode(Opcodes.ICONST_0),
-					new LdcInsnNode(Type.getType(Event.class)),
-					new InsnNode(Opcodes.AASTORE),
-					new MethodInsnNode(Opcodes.INVOKEVIRTUAL, "java/lang/Class", "getDeclaredMethod", "(Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/reflect/Method;", false)
-			));
+			try {
+				Class.forName("com.cleanroommc.common.CleanroomVersion");
+			} catch (ClassNotFoundException e) {
+				MethodNode clinit = ASMUtil.find(classNode, "<clinit>");
+				ASMUtil.replace(clinit, ASMUtil.first(clinit).methodInsn("getDeclaredMethods").find(), ASMUtil.first(clinit).opcode(Opcodes.AALOAD).find(), ASMUtil.listOf(
+						new LdcInsnNode("invoke"),
+						new InsnNode(Opcodes.ICONST_1),
+						new TypeInsnNode(Opcodes.ANEWARRAY, "java/lang/Class"),
+						new InsnNode(Opcodes.DUP),
+						new InsnNode(Opcodes.ICONST_0),
+						new LdcInsnNode(Type.getType(Event.class)),
+						new InsnNode(Opcodes.AASTORE),
+						new MethodInsnNode(Opcodes.INVOKEVIRTUAL, "java/lang/Class", "getDeclaredMethod", "(Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/reflect/Method;", false)
+				));
+			}
 		});
 		registry.add("net.minecraftforge.fml.common.eventhandler.EventBus", "post", ClassWriter.COMPUTE_FRAMES, method -> {
 			ASMUtil.addLocalVariable(method, "profiler", "Lnet/minecraft/profiler/Profiler;", new LabelNode(), ASMUtil.findLocalVariable(method, "listeners").end);
